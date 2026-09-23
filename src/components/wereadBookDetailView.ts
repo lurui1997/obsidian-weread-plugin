@@ -438,12 +438,16 @@ export class WereadBookDetailView extends ItemView {
 		const readBtn = bar.createEl('button', { cls: 'weread-book-detail-tab-action' });
 		setIcon(readBtn, 'book-open');
 		readBtn.setAttr('title', '在微信读书中打开');
-		readBtn.addEventListener('click', () => {
+		readBtn.addEventListener('click', async () => {
 			const settings = get(settingsStore);
 			const url = settings.bookOpenMode === 'app'
 				? `weread://reading?bId=${this.bookId}`
 				: getPcUrl(this.bookId);
-			window.open(url);
+			if (settings.bookOpenMode === 'app') {
+				window.open(url);
+			} else {
+				await this.plugin.openPreferredReadingView(url);
+			}
 		});
 		const refreshBtn = bar.createEl('button', { cls: 'weread-book-detail-tab-action' });
 			refreshBtn.style.marginLeft = '4px';
