@@ -3,6 +3,7 @@ import { get } from 'svelte/store';
 import ApiRouter from '../api-router';
 import { settingsStore } from '../settings';
 import { getPcUrl } from '../parser/parseResponse';
+import { openWereadHighlightLocation } from '../utils/openWereadUrl';
 import type {
 	BookDetailResponse,
 	BookProgressResponse,
@@ -586,7 +587,7 @@ export class WereadBookDetailView extends ItemView {
 
 				// 操作按钮（inline 在 meta 行右侧）
 				const actions = meta.createDiv({ cls: 'weread-book-detail-hl-actions' });
-				this.createDeepLinkButton(actions, this.buildDeepLink(h.chapterUid, h.range));
+				this.createDeepLinkButton(actions, h.chapterUid, h.range);
 				this.createCopyButton(actions, h.markText);
 			}
 		}
@@ -761,7 +762,7 @@ export class WereadBookDetailView extends ItemView {
 
 				// 操作按钮（inline 在 meta 行右侧）
 				const actions = meta.createDiv({ cls: 'weread-book-detail-hl-actions' });
-				this.createDeepLinkButton(actions, this.buildDeepLink(h.chapterUid, h.range));
+				this.createDeepLinkButton(actions, h.chapterUid, h.range);
 				this.createCopyButton(actions, h.markText);
 			}
 		}
@@ -880,11 +881,6 @@ export class WereadBookDetailView extends ItemView {
 
 	// ── 辅助方法 ────────────────────────────────────────────────
 
-	private buildDeepLink(chapterUid: number, range: string): string {
-		const [start, end] = range.split('-');
-		return `weread://bestbookmark?bookId=${this.bookId}&chapterUid=${chapterUid}&rangeStart=${start}&rangeEnd=${end || start}`;
-	}
-
 	private renderTextWithBreaks(container: HTMLElement, text: string, cls: string): void {
 		const el = container.createDiv({ cls });
 		const lines = text.split('\n');
@@ -906,13 +902,13 @@ export class WereadBookDetailView extends ItemView {
 		});
 	}
 
-	private createDeepLinkButton(container: HTMLElement, deepLink: string): void {
+	private createDeepLinkButton(container: HTMLElement, chapterUid: number, range: string): void {
 		const btn = container.createEl('button', { cls: 'weread-book-detail-action-btn' });
 		setIcon(btn, 'external-link');
 		btn.setAttr('title', '跳转到微信读书');
 		btn.addEventListener('click', (e) => {
 			e.stopPropagation();
-			window.open(deepLink, '_blank');
+			void openWereadHighlightLocation(this.plugin, this.bookId, chapterUid, range);
 		});
 	}
 
