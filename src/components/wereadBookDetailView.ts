@@ -1,4 +1,8 @@
 import { ItemView, WorkspaceLeaf, setIcon, Notice, TFile } from 'obsidian';
+import {
+	parseLocalPopularHighlights,
+	parseLocalUserHighlights
+} from '../utils/localHighlightParser';
 import { get } from 'svelte/store';
 import ApiRouter from '../api-router';
 import { settingsStore } from '../settings';
@@ -49,6 +53,8 @@ export class WereadBookDetailView extends ItemView {
 	private loading = false;
 	private error: string | null = null;
 	private requestBookId = '';
+	private usingLocalHighlights = false;
+	private usingLocalPopular = false;
 
 	private headerEl!: HTMLElement;
 	private tabBarEl!: HTMLElement;
@@ -176,10 +182,45 @@ export class WereadBookDetailView extends ItemView {
 			publicReviews.status === 'fulfilled' ? publicReviews.value : undefined;
 
 		if (!this.detail && !this.highlightResp && !this.reviewResp) {
-			this.error = '加载失败，请检查网络或 API Key';
+			this.error = '远程加载失败，请检查 API Key 或重新登录微信读书';
 		}
 
+		await this.applyLocalHighlightFallback();
+
 		this.loading = false;
+	}
+
+	private async applyLocalHighlightFallback(): Promise<void> {
+		this.usingLocalHighlights = false;
+		this.usingLocalPopular = false;
+		if (!this.localFilePath) {
+			return;
+		}
+
+		const file = this.app.vault.getAbstractFileByPath(this.localFilePath);
+		if (!(file instanceof TFile)) {
+			return;
+		}
+
+		const content = await this.app.vault.read(file);
+		const hasRemoteHighlights = (this.highlightResp?.updated?.length ?? 0) > 0;
+		const hasRemotePopular = (this.popularResp?.items?.length ?? 0) > 0;
+
+		if (!hasRemoteHighlights) {
+			const localHighlights = parseLocalUserHighlights(content, this.bookId);
+			if (localHighlights.updated.length > 0) {
+				this.highlightResp = localHighlights;
+				this.usingLocalHighlights = true;
+			}
+		}
+
+		if (!hasRemotePopular) {
+			const localPopular = parseLocalPopularHighlights(content, this.bookId);
+			if (localPopular.items.length > 0) {
+				this.popularResp = localPopular;
+				this.usingLocalPopular = true;
+			}
+		}
 	}
 
 	// ── 主渲染方法 ──────────────────────────────────────────────
@@ -493,10 +534,18 @@ export class WereadBookDetailView extends ItemView {
 		const highlights = this.highlightResp?.updated || [];
 		const chapters = this.highlightResp?.chapters || [];
 
+		if (this.usingLocalHighlights) {
+			container.createDiv({
+				cls: 'weread-book-detail-local-banner',
+				text: '远程划线加载失败，当前显示本地已同步笔记'
+			});
+		}
 
 		if (highlights.length === 0) {
 			container.createDiv({
-				text: '暂无划线',
+				text: this.localFilePath
+					? '暂无划线。若此前已同步过笔记，请尝试刷新；或在设置中更新 API Key / 重新登录'
+					: '暂无划线',
 				cls: 'weread-book-detail-empty'
 			});
 			return;
@@ -678,6 +727,13 @@ export class WereadBookDetailView extends ItemView {
 		const container = this.contentChildEl;
 		const items = this.popularResp?.items || [];
 		const chapters = this.popularResp?.chapters || [];
+
+		if (this.usingLocalPopular) {
+			container.createDiv({
+				cls: 'weread-book-detail-local-banner',
+				text: '远程热门划线加载失败，当前显示本地已同步笔记'
+			});
+		}
 
 		if (items.length === 0) {
 			container.createDiv({
