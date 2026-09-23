@@ -636,7 +636,7 @@ export class WereadBookDetailView extends ItemView {
 
 				// 操作按钮（inline 在 meta 行右侧）
 				const actions = meta.createDiv({ cls: 'weread-book-detail-hl-actions' });
-				this.createDeepLinkButton(actions, h.chapterUid, h.range);
+				this.createDeepLinkButton(actions, h.chapterUid, h.range, chapterTitle, h.markText);
 				this.createCopyButton(actions, h.markText);
 			}
 		}
@@ -818,7 +818,7 @@ export class WereadBookDetailView extends ItemView {
 
 				// 操作按钮（inline 在 meta 行右侧）
 				const actions = meta.createDiv({ cls: 'weread-book-detail-hl-actions' });
-				this.createDeepLinkButton(actions, h.chapterUid, h.range);
+				this.createDeepLinkButton(actions, h.chapterUid, h.range, chapterTitle, h.markText);
 				this.createCopyButton(actions, h.markText);
 			}
 		}
@@ -958,13 +958,22 @@ export class WereadBookDetailView extends ItemView {
 		});
 	}
 
-	private createDeepLinkButton(container: HTMLElement, chapterUid: number, range: string): void {
+	private createDeepLinkButton(
+		container: HTMLElement,
+		chapterUid: number,
+		range: string,
+		chapterTitle?: string,
+		markText?: string
+	): void {
 		const btn = container.createEl('button', { cls: 'weread-book-detail-action-btn' });
 		setIcon(btn, 'external-link');
 		btn.setAttr('title', '跳转到微信读书');
 		btn.addEventListener('click', (e) => {
 			e.stopPropagation();
-			void openWereadHighlightLocation(this.plugin, this.bookId, chapterUid, range);
+			void openWereadHighlightLocation(this.plugin, this.bookId, chapterUid, range, {
+				chapterTitle,
+				markText
+			});
 		});
 	}
 

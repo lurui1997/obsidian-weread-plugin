@@ -1,8 +1,8 @@
 import { Notice, Platform } from 'obsidian';
 import { get } from 'svelte/store';
 import { settingsStore } from '../settings';
-import { getPcUrl } from '../parser/parseResponse';
 import type WereadPlugin from '../../main';
+import { parseBookmarkRange } from './webReaderBookmark';
 
 export function buildBestBookmarkDeepLink(
 	bookId: string,
@@ -40,7 +40,8 @@ export async function openWereadHighlightLocation(
 	plugin: WereadPlugin,
 	bookId: string,
 	chapterUid: number,
-	range: string
+	range: string,
+	context?: { chapterTitle?: string; markText?: string }
 ): Promise<void> {
 	const settings = get(settingsStore);
 	const appDeepLink = buildBestBookmarkDeepLink(bookId, chapterUid, range);
@@ -54,5 +55,13 @@ export async function openWereadHighlightLocation(
 		return;
 	}
 
-	await plugin.openPreferredReadingView(getPcUrl(bookId));
+	const { rangeStart, rangeEnd } = parseBookmarkRange(range);
+	await plugin.openPreferredReadingView(undefined, {
+		bookId,
+		chapterUid,
+		rangeStart,
+		rangeEnd,
+		chapterTitle: context?.chapterTitle,
+		markText: context?.markText
+	});
 }
